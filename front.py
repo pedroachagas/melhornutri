@@ -22,6 +22,7 @@ def download_from_s3(bucket_name, file_name):
     file_content = file_obj['Body'].read()
     return pd.read_csv(BytesIO(file_content))
 
+st.set_page_config(page_title="Melhor Nutricionarista de Macaé", page_icon="🍎")
 st.title("Melhor Nutricionarista de Macaé - Ranking de Menções")
 
 comments_df = download_from_s3(BUCKET_NAME, FILE_NAME)
@@ -31,11 +32,13 @@ if mention_counts:
     df = pd.DataFrame(list(mention_counts.items()), columns=['Profissional', 'Menções'])
     df = df.sort_values(by='Menções', ascending=False).reset_index(drop=True)
 
-    st.header("Top 3 Mais Mencionados")
-    fig = px.bar(df.head(3), x='Profissional', y='Menções', color='Profissional')
+    topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
+
+    st.header(f"Top {topn} Mais Mencionados")
+    fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional')
     st.plotly_chart(fig)
 
-    professional = '@' + st.text_input("Digite o nome do profissional para verificar a posição no ranking:", "_marcelasiqueira")
+    professional = '@' + st.text_input("Digite o nome do profissional para verificar a posição no ranking:")
     if st.button("Verificar"):
         professional_mentions = mention_counts.get(professional, 0)
         if professional_mentions:
