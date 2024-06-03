@@ -35,10 +35,7 @@ if mention_counts:
 
     topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
 
-    st.header(f"Top {topn} Mais Mencionados")
-    fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional')
-    st.plotly_chart(fig)
-
+    st.header("Verificar Posição no Ranking")
     professional = '@' + st.text_input("Digite o nome do profissional para verificar a posição no ranking:")
     if st.button("Verificar"):
         professional_mentions = mention_counts.get(professional, 0)
@@ -48,8 +45,12 @@ if mention_counts:
         else:
             st.write(f"{professional} não foi mencionado.")
 
+    st.header(f"Top {topn} Mais Mencionados")
+    fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional')
+    st.plotly_chart(fig)
+
     st.header("Número de Curtidas ao Longo do Tempo")
-    selected_professionals = st.multiselect("Selecione os profissionais:", df['Profissional'].tolist())
+    selected_professionals = st.multiselect("Selecione os profissionais:", df['Profissional'].tolist(), default=df['Profissional'].head(topn).tolist())
 
     if selected_professionals:
         mentions_df = comments_df.loc[comments_df['text'].str.contains('|'.join(selected_professionals))]
