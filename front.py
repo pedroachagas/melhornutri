@@ -33,8 +33,6 @@ if mention_counts:
     df = pd.DataFrame(list(mention_counts.items()), columns=['Profissional', 'Menções'])
     df = df.sort_values(by='Menções', ascending=False).reset_index(drop=True)
 
-    topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
-
     st.header("Verificar Posição no Ranking")
     professional = '@' + st.text_input("Digite o nome do profissional para verificar a posição no ranking:")
     if st.button("Verificar"):
@@ -45,6 +43,7 @@ if mention_counts:
         else:
             st.write(f"{professional} não foi mencionado.")
 
+    topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
     st.header(f"Top {topn} Mais Mencionados")
     fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional')
     st.plotly_chart(fig)
