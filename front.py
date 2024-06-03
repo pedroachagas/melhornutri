@@ -22,8 +22,8 @@ def download_from_s3(bucket_name, file_name):
     file_content = file_obj['Body'].read()
     return pd.read_csv(BytesIO(file_content))
 
-st.set_page_config(page_title="Melhor Nutricionarista de Macaé", page_icon="🍎")
-st.title("Melhor Nutricionarista de Macaé - Ranking de Menções")
+st.set_page_config(page_title="Melhor Nutri de Macaé", page_icon="🍎")
+st.title("Melhor Nutri de Macaé - Ranking de Menções")
 
 comments_df = download_from_s3(BUCKET_NAME, FILE_NAME)
 mention_counts = comments_df['text'].str.findall(r'@[\S]+').explode().value_counts().to_dict()
