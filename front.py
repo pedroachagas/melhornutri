@@ -24,7 +24,6 @@ def download_from_s3(bucket_name, file_name):
 
 st.set_page_config(page_title="Melhor Nutri de Macaé", page_icon="🍎")
 st.title("Melhor Nutri de Macaé")
-st.subheader("Ranking de Menções")
 
 comments_df = download_from_s3(BUCKET_NAME, FILE_NAME)
 mention_counts = comments_df['text'].str.findall(r'@[\S]+').explode().value_counts().to_dict()
@@ -43,6 +42,7 @@ if mention_counts:
         else:
             st.write(f"{professional} não foi mencionado.")
 
+    st.header("Ranking de Menções")
     topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
     st.header(f"Top {topn} Mais Mencionados")
     fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional')
