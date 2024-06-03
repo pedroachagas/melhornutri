@@ -16,7 +16,7 @@ s3 = boto3.client(
     aws_secret_access_key=SECRET_KEY
 )
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=pd.Timedelta(minutes=30))
 def download_from_s3(bucket_name, file_name):
     file_obj = s3.get_object(Bucket=bucket_name, Key=file_name)
     file_content = file_obj['Body'].read()
