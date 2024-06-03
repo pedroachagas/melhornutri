@@ -23,7 +23,8 @@ def download_from_s3(bucket_name, file_name):
     return pd.read_csv(BytesIO(file_content))
 
 st.set_page_config(page_title="Melhor Nutri de Macaé", page_icon="🍎")
-st.title("Melhor Nutri de Macaé - Ranking de Menções")
+st.title("Melhor Nutri de Macaé")
+st.subheader("Ranking de Menções")
 
 comments_df = download_from_s3(BUCKET_NAME, FILE_NAME)
 mention_counts = comments_df['text'].str.findall(r'@[\S]+').explode().value_counts().to_dict()
@@ -46,3 +47,31 @@ if mention_counts:
             st.write(f"{professional} está na posição {position} com {professional_mentions} menções.")
         else:
             st.write(f"{professional} não foi mencionado.")
+
+    st.header("Número de Curtidas ao Longo do Tempo")
+    selected_professionals = st.multiselect("Selecione os profissionais:", df['Profissional'].tolist())
+
+    if selected_professionals:
+        mentions_df = comments_df[comments_df['text'].str.contains('|'.join(selected_professionals))]
+        mentions_df['created_at_utc'] = pd.to_datetime(mentions_df['created_at_utc'])
+        mentions_df = mentions_df.groupby([mentions_df['created_at_utc'], 'text']).size().reset_index(name='mentions')
+        mentions_df['Profissional'] = mentions_df['text'].str.findall(r'@[\S]+').apply(lambda x: next((prof for prof in x if prof in selected_professionals), None))
+
+        mentions_df = mentions_df.groupby(['created_at_utc', 'Profissional'])['mentions'].sum().groupby(level=1).cumsum().reset_index()
+
+        # Pivot the dataframe to have professionals as columns and dates as index
+        pivot_df = mentions_df.pivot(index='created_at_utc', columns='Profissional', values='mentions')
+
+        # Forward fill the NaN values
+        pivot_df = pivot_df.fillna(method='ffill')
+
+        # Now melt the dataframe back to the original shape
+        mentions_df = pivot_df.reset_index().melt(id_vars='created_at_utc', value_name='mentions')
+
+        # Plot the chart
+        fig_mentions = px.line(mentions_df, x='created_at_utc', y='mentions', color='Profissional', title='Menções por Profissional ao Longo do Tempo')
+        fig_mentions.update_layout(
+            yaxis_title="Menções",
+            xaxis_title="Tempo"
+        )
+        st.plotly_chart(fig_mentions)
