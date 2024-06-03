@@ -24,6 +24,19 @@ def download_from_s3(bucket_name, file_name):
 
 st.set_page_config(page_title="Melhor Nutri de Macaé", page_icon="🍎")
 st.title("Melhor Nutri de Macaé")
+st.markdown("""
+Este é um dashboard para analisar os comentários do [post de votação](https://www.instagram.com/p/C7NlnFvtDX4/) para definir quem é o melhor nutricionista de Macaé!
+
+**Instruções:**
+1. Digite o nome do profissional para verificar a posição no ranking.
+2. Selecione o número de profissionais para visualizar no ranking.
+3. Selecione os profissionais para visualizar o número de menções ao longo do tempo.
+
+**Dica:** Clique no nome do profissional na legenda para ocultar/mostrar a linha correspondente no gráfico.
+
+**Nota:** Os dados são atualizados a cada 30 minutos.
+
+""")
 
 comments_df = download_from_s3(BUCKET_NAME, FILE_NAME)
 mention_counts = comments_df['text'].str.findall(r'@[\S]+').explode().value_counts().to_dict()
