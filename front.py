@@ -52,8 +52,9 @@ if mention_counts:
     selected_professionals = st.multiselect("Selecione os profissionais:", df['Profissional'].tolist())
 
     if selected_professionals:
-        mentions_df = comments_df[comments_df['text'].str.contains('|'.join(selected_professionals))]
-        mentions_df['created_at_utc'] = pd.to_datetime(mentions_df['created_at_utc'])
+        mentions_df = comments_df.loc[comments_df['text'].str.contains('|'.join(selected_professionals))]
+        mentions_df.loc[:, 'created_at_utc'] = pd.to_datetime(mentions_df['created_at_utc'])
+
         mentions_df = mentions_df.groupby([mentions_df['created_at_utc'], 'text']).size().reset_index(name='mentions')
         mentions_df['Profissional'] = mentions_df['text'].str.findall(r'@[\S]+').apply(lambda x: next((prof for prof in x if prof in selected_professionals), None))
 
@@ -63,7 +64,7 @@ if mention_counts:
         pivot_df = mentions_df.pivot(index='created_at_utc', columns='Profissional', values='mentions')
 
         # Forward fill the NaN values
-        pivot_df = pivot_df.fillna(method='ffill')
+        pivot_df = pivot_df.ffill()
 
         # Now melt the dataframe back to the original shape
         mentions_df = pivot_df.reset_index().melt(id_vars='created_at_utc', value_name='mentions')
