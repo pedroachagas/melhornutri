@@ -44,8 +44,7 @@ if mention_counts:
 
     st.header("Ranking de Menções")
     topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
-    st.header(f"Top {topn} Mais Mencionados")
-    fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional')
+    fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional', title=f'Top {topn} Profissionais Mais Mencionados')
     st.plotly_chart(fig)
 
     st.header("Número de Curtidas ao Longo do Tempo")
