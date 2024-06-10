@@ -4,10 +4,37 @@ import plotly.express as px
 import boto3
 from io import BytesIO
 
+st.set_page_config(page_title="Melhor Nutri de Macaé", page_icon="🍎")
 BUCKET_NAME = st.secrets["AWS_BUCKET_NAME"]
-FILE_NAME = st.secrets["AWS_FILE_NAME"]
 ACCESS_KEY = st.secrets["AWS_ACCESS_KEY_ID"]
 SECRET_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
+
+df_business_types = pd.read_csv('business_types.csv')
+business_types = df_business_types['business_type'].tolist()
+
+with st.sidebar:
+    st.title("Melhores do Ano 2024 - Macaé, RJ")
+    st.markdown(f"""
+        Este é um dashboard para analisar os comentários dos posts de votação de melhores negócios de Macaé, RJ.
+        """)
+    business_type = st.selectbox(
+        "Selecione o tipo de negócio:",
+        business_types,
+        index=business_types.index('Nutricionista')
+        )
+    st.markdown(f"""
+        **Instruções:**
+        1. Digite o nome do profissional para verificar a posição no ranking.
+        2. Selecione o número de profissionais para visualizar no ranking.
+        3. Selecione os profissionais para visualizar o número de menções ao longo do tempo.
+
+        **Dica:** Clique no nome do profissional na legenda para ocultar/mostrar a linha correspondente no gráfico.
+
+        """)
+    df_business = df_business_types[df_business_types['business_type'] == business_type]
+    FILE_NAME = f'posts_final/comments_{business_type}.csv'
+    # url = df_business['url'].values[0]
+    # st.markdown(f"[Acesse o post de votação]({url})")
 
 # Initialize S3 client
 s3 = boto3.client(
@@ -16,36 +43,31 @@ s3 = boto3.client(
     aws_secret_access_key=SECRET_KEY
 )
 
-@st.cache_data(show_spinner=False, ttl=pd.Timedelta(minutes=30))
+@st.cache_data(show_spinner=False)
 def download_from_s3(bucket_name, file_name):
-    file_obj = s3.get_object(Bucket=bucket_name, Key=file_name)
-    file_content = file_obj['Body'].read()
-    return pd.read_csv(BytesIO(file_content))
+    try:
+        file_obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+        file_content = file_obj['Body'].read()
+        return pd.read_csv(BytesIO(file_content))
+    except Exception as e:
+        st.error(f"Erro ao baixar o arquivo: {file_name}")
+        return pd.DataFrame()
 
-st.set_page_config(page_title="Melhor Nutri de Macaé", page_icon="🍎")
-st.title("Melhor Nutri de Macaé")
-st.markdown("""
-Este é um dashboard para analisar os comentários do [post de votação](https://www.instagram.com/p/C7NlnFvtDX4/) para definir quem é o melhor nutricionista de Macaé!
 
-**Instruções:**
-1. Digite o nome do profissional para verificar a posição no ranking.
-2. Selecione o número de profissionais para visualizar no ranking.
-3. Selecione os profissionais para visualizar o número de menções ao longo do tempo.
-
-**Dica:** Clique no nome do profissional na legenda para ocultar/mostrar a linha correspondente no gráfico.
-
-**Nota:** Os dados são atualizados a cada 30 minutos.
-
-""")
-
+st.title(business_type.upper())
 comments_df = download_from_s3(BUCKET_NAME, FILE_NAME)
+comments_df = comments_df.drop_duplicates(subset=['username'])
+
+if comments_df.empty:
+    st.warning("Nenhum comentário encontrado.")
+    st.stop()
+
 mention_counts = comments_df['text'].str.findall(r'@[\S]+').explode().value_counts().to_dict()
 
 if mention_counts:
     df = pd.DataFrame(list(mention_counts.items()), columns=['Profissional', 'Menções'])
     df = df.sort_values(by='Menções', ascending=False).reset_index(drop=True)
-
-    st.header("Verificar Posição no Ranking")
+    st.subheader("Verificar Posição no Ranking")
     professional = '@' + st.text_input("Digite o nome do profissional para verificar a posição no ranking:")
     if st.button("Verificar"):
         professional_mentions = mention_counts.get(professional, 0)
@@ -55,11 +77,13 @@ if mention_counts:
         else:
             st.write(f"{professional} não foi mencionado.")
 
+    # st.divider()
     st.header("Ranking de Menções")
     topn = st.number_input("Selecione o número de profissionais para visualizar no ranking:", 1, 15, 3)
     fig = px.bar(df.head(topn), x='Profissional', y='Menções', color='Profissional', title=f'Top {topn} Profissionais Mais Mencionados')
     st.plotly_chart(fig)
 
+    # st.divider()
     st.header("Número de Curtidas ao Longo do Tempo")
     selected_professionals = st.multiselect("Selecione os profissionais:", df['Profissional'].tolist(), default=df['Profissional'].head(topn).tolist())
 
